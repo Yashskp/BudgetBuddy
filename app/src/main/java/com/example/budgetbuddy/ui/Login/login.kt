@@ -67,7 +67,6 @@ fun LoginScreen(
 
                                 // Extract username from email
                                 val username = email.substringBefore("@")
-
                                 Log.d("Login", "Username = $username")
 
                                 // Navigate to home/{username}
