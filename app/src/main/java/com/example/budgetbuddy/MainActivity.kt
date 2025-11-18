@@ -5,7 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.example.budgetbuddy.ui.navigation.AppNavGraph
-
 import com.example.budgetbuddy.ui.theme.BudgetBuddyTheme
 import com.google.firebase.auth.FirebaseAuth
 

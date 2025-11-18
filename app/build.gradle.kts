@@ -15,7 +15,6 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -29,6 +28,7 @@ android {
         }
     }
 
+    // Use Java 17 for Compose + Firebase
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -41,23 +41,19 @@ android {
     buildFeatures {
         compose = true
     }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.6.10"
-    }
 }
 
 dependencies {
 
-    // Core Android
+    // Core AndroidX
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
 
-    // Compose BOM (controls compose versions)
+    // Compose BOM
     implementation(platform(libs.androidx.compose.bom))
 
-    // Compose libraries
+    // Compose UI
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
@@ -66,11 +62,25 @@ dependencies {
     // Navigation Compose
     implementation("androidx.navigation:navigation-compose:2.8.0")
 
-    // Firebase (BOM manages versions)
+    // -------------------------------------------------------
+    // Firebase (use BOM + ONLY library names)
+    // -------------------------------------------------------
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.firebase:firebase-storage")
+    implementation("androidx.compose.ui:ui-text:1.6.8")
+    implementation("androidx.compose.ui:ui-text:1.6.10")
+    implementation("io.github.bytebeats:compose-charts:0.2.0")
+
+
+
+
+    // -------------------------------------------------------
+    // ⭐ Coil - For loading online images
+    // -------------------------------------------------------
+    implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation(libs.androidx.foundation)
 
     // Tests
     testImplementation(libs.junit)
@@ -79,7 +89,8 @@ dependencies {
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
 
-    // Debug Tools
+
+    // Debug
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 }
