@@ -35,7 +35,7 @@ fun AppNavGraph(auth: FirebaseAuth) {
         }
 
         composable("expense") {
-            ExpenseScreen(navController)
+            ExpenseScreen()
         }
 
         composable("analytics") {

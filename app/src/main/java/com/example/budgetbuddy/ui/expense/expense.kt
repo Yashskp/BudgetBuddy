@@ -3,7 +3,9 @@ package com.example.budgetbuddy.ui.expense
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -17,7 +19,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -27,7 +28,7 @@ import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ExpenseScreen(navController: NavController) {
+fun ExpenseScreen() {
 
     val context = LocalContext.current
     val auth = FirebaseAuth.getInstance()
@@ -40,7 +41,10 @@ fun ExpenseScreen(navController: NavController) {
 
     val expenseList = remember { mutableStateListOf<Map<String, Any>>() }
 
-    // 🔥 Load expenses from Firebase
+    // ⭐ SCROLL STATE ADDED
+    val scrollState = rememberScrollState()
+
+    // LOAD EXPENSES
     LaunchedEffect(true) {
         try {
             val snapshot = db.collection("expenses")
@@ -58,7 +62,11 @@ fun ExpenseScreen(navController: NavController) {
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)   // ⭐ SCROLL ADDED HERE
+    ) {
 
         // HEADER
         Box(
@@ -89,13 +97,11 @@ fun ExpenseScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(15.dp))
 
-        // ⭐ SEARCH BAR
+        // SEARCH BAR
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            leadingIcon = {
-                Icon(Icons.Default.Search, contentDescription = "Search")
-            },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
             placeholder = { Text("Search expenses...") },
             modifier = Modifier
                 .fillMaxWidth()
@@ -106,7 +112,7 @@ fun ExpenseScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(15.dp))
 
-        // ⭐ INPUT CARD
+        // INPUT CARD
         Card(
             modifier = Modifier
                 .padding(horizontal = 20.dp)
@@ -117,7 +123,6 @@ fun ExpenseScreen(navController: NavController) {
 
             Column(modifier = Modifier.padding(20.dp)) {
 
-                // Amount
                 OutlinedTextField(
                     value = amount,
                     onValueChange = { amount = it },
@@ -131,7 +136,6 @@ fun ExpenseScreen(navController: NavController) {
 
                 Spacer(Modifier.height(15.dp))
 
-                // Purpose
                 OutlinedTextField(
                     value = purpose,
                     onValueChange = { purpose = it },
@@ -142,14 +146,13 @@ fun ExpenseScreen(navController: NavController) {
 
                 Spacer(Modifier.height(20.dp))
 
-                // ADD EXPENSE BUTTON
                 Button(
                     onClick = {
                         if (amount.isNotEmpty() && purpose.isNotEmpty()) {
 
                             val cal = Calendar.getInstance()
 
-                            val data = mapOf(
+                            val data = mapOf<String, Any>(
                                 "amount" to amount,
                                 "purpose" to purpose,
                                 "date" to SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(cal.time),
@@ -160,16 +163,15 @@ fun ExpenseScreen(navController: NavController) {
                                 "timestamp" to Timestamp.now()
                             )
 
-                            db.collection("expenses")
-                                .add(data)
+                            db.collection("expenses").add(data)
                                 .addOnSuccessListener {
                                     expenseList.add(data)
                                     amount = ""
                                     purpose = ""
-                                    Toast.makeText(context, "Expense saved", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Expense added", Toast.LENGTH_SHORT).show()
                                 }
                                 .addOnFailureListener { e ->
-                                    Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
                                 }
                         }
                     },
@@ -177,29 +179,14 @@ fun ExpenseScreen(navController: NavController) {
                         .fillMaxWidth()
                         .height(50.dp),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFAA55FF))
+                    colors = ButtonDefaults.buttonColors(Color(0xFFAA55FF))
                 ) {
                     Text("Add Expense", color = Color.White, fontSize = 18.sp)
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(15.dp))
-
-        // ⭐ ANALYTICS BUTTON
-        Button(
-            onClick = { navController.navigate("analytics") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .height(50.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(Color(0xFF0077FF))
-        ) {
-            Text("View Analytics (Pie Chart)", color = Color.White, fontSize = 18.sp)
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(Modifier.height(20.dp))
 
         Text(
             "Your Expenses",
@@ -208,16 +195,14 @@ fun ExpenseScreen(navController: NavController) {
             modifier = Modifier.padding(start = 20.dp)
         )
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(Modifier.height(10.dp))
 
-        // FILTER LIST
         val filteredList = expenseList.filter {
             it["amount"].toString().contains(searchQuery, true) ||
                     it["purpose"].toString().contains(searchQuery, true)
         }
 
         Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-
             filteredList.forEach { item ->
 
                 Card(
@@ -233,7 +218,7 @@ fun ExpenseScreen(navController: NavController) {
                         Text("₹${item["amount"]}", fontSize = 22.sp, fontWeight = FontWeight.Bold)
                         Text(item["purpose"].toString(), fontSize = 16.sp, color = Color.DarkGray)
 
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(10.dp))
 
                         Text("📅 Date: ${item["date"]}")
                         Text("⏰ Time: ${item["time"]}")
@@ -243,5 +228,7 @@ fun ExpenseScreen(navController: NavController) {
                 }
             }
         }
+
+        Spacer(Modifier.height(100.dp))
     }
 }

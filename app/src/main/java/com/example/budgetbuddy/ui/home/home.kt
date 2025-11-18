@@ -3,7 +3,9 @@ package com.example.budgetbuddy.ui.home
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -29,10 +31,9 @@ fun HomeScreen(username: String, navController: NavController) {
     val context = LocalContext.current
     val auth = FirebaseAuth.getInstance()
     val db = FirebaseFirestore.getInstance()
+    val scrollState = rememberScrollState()   // ⭐ SCROLL ENABLED
 
-    // NEW WEEK SELECTOR STATE
     var selectedWeek by rememberSaveable { mutableStateOf("Select Week") }
-
     var selectedMonth by rememberSaveable { mutableStateOf("Select Month") }
     var weeklyAmount by rememberSaveable { mutableStateOf("") }
     var monthlyAmount by rememberSaveable { mutableStateOf("") }
@@ -43,12 +44,12 @@ fun HomeScreen(username: String, navController: NavController) {
 
     val userId = auth.currentUser?.uid ?: ""
 
-    // Load saved budget
+    // Load Firebase data
     LaunchedEffect(true) {
         try {
             val doc = db.collection("budgets").document(userId).get().await()
             if (doc.exists()) {
-                selectedWeek = doc.getString("week") ?: "Select Week"
+                selectedWeek = doc.getString("weekType") ?: "Select Week"
                 selectedMonth = doc.getString("month") ?: "Select Month"
                 weeklyAmount = doc.getString("weeklyAmount") ?: ""
                 monthlyAmount = doc.getString("monthlyAmount") ?: ""
@@ -59,9 +60,13 @@ fun HomeScreen(username: String, navController: NavController) {
         } catch (_: Exception) {}
     }
 
-    val today = SimpleDateFormat("EEEE", Locale.getDefault()).format(Date())
+    val today = SimpleDateFormat("EEEE", Locale.getDefault()).format(Date()) // Day name
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)   // ⭐ SCROLL HERE
+    ) {
 
         // HEADER
         Box(
@@ -76,38 +81,56 @@ fun HomeScreen(username: String, navController: NavController) {
             contentAlignment = Alignment.CenterStart
         ) {
             Column(modifier = Modifier.padding(start = 20.dp)) {
-                Text("Hello, $username", fontSize = 27.sp, color = Color.White, fontWeight = FontWeight.Bold)
-                Text("Welcome to BudgetBuddy", fontSize = 16.sp, color = Color.White.copy(alpha = 0.8f))
+                Text(
+                    text = "Hello, $username 👋",
+                    fontSize = 27.sp,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Welcome to BudgetBuddy",
+                    fontSize = 16.sp,
+                    color = Color.White.copy(alpha = 0.8f)
+                )
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(Modifier.height(20.dp))
 
-        // ------------------------ BUDGET CARD ------------------------
+        // BUDGET CARD
         Card(
-            modifier = Modifier.padding(horizontal = 20.dp).fillMaxWidth(),
+            modifier = Modifier
+                .padding(horizontal = 20.dp)
+                .fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
             elevation = CardDefaults.cardElevation(10.dp)
         ) {
+
             Column(modifier = Modifier.padding(20.dp)) {
 
-                Text("Set Your Budget", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF003366))
-                Spacer(modifier = Modifier.height(20.dp))
+                Text(
+                    "Set Your Budget",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF003366)
+                )
 
-                // ⭐ WEEK SELECTOR ADDED HERE ⭐
+                Spacer(Modifier.height(20.dp))
+
+                // ⭐ SELECT WEEK DROPDOWN
                 DropdownField(
-                    value = selectedWeek,
                     label = "Select Week",
+                    value = selectedWeek,
                     options = listOf("Week 1", "Week 2", "Week 3", "Week 4"),
                     onSelect = { selectedWeek = it }
                 )
 
-                Spacer(modifier = Modifier.height(15.dp))
+                Spacer(Modifier.height(15.dp))
 
-                // MONTH SELECTOR
+                // SELECT MONTH DROPDOWN
                 DropdownField(
-                    value = selectedMonth,
                     label = "Select Month",
+                    value = selectedMonth,
                     options = listOf(
                         "January", "February", "March", "April", "May", "June",
                         "July", "August", "September", "October", "November", "December"
@@ -115,7 +138,7 @@ fun HomeScreen(username: String, navController: NavController) {
                     onSelect = { selectedMonth = it }
                 )
 
-                Spacer(modifier = Modifier.height(15.dp))
+                Spacer(Modifier.height(15.dp))
 
                 OutlinedTextField(
                     value = weeklyAmount,
@@ -125,7 +148,7 @@ fun HomeScreen(username: String, navController: NavController) {
                     shape = RoundedCornerShape(12.dp)
                 )
 
-                Spacer(modifier = Modifier.height(15.dp))
+                Spacer(Modifier.height(15.dp))
 
                 OutlinedTextField(
                     value = monthlyAmount,
@@ -135,19 +158,20 @@ fun HomeScreen(username: String, navController: NavController) {
                     shape = RoundedCornerShape(12.dp)
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(Modifier.height(20.dp))
 
+                // SAVE BUDGET BUTTON
                 Button(
                     onClick = {
 
-                        val sdfDate = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
-                        val sdfTime = SimpleDateFormat("hh:mm a", Locale.getDefault())
-                        val now = Date()
-                        savedDate = sdfDate.format(now)
-                        savedTime = sdfTime.format(now)
+                        val date = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date())
+                        val time = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date())
+
+                        savedDate = date
+                        savedTime = time
 
                         val data = hashMapOf(
-                            "week" to selectedWeek,
+                            "weekType" to selectedWeek,
                             "month" to selectedMonth,
                             "weeklyAmount" to weeklyAmount,
                             "monthlyAmount" to monthlyAmount,
@@ -164,9 +188,10 @@ fun HomeScreen(username: String, navController: NavController) {
                             .addOnFailureListener {
                                 Toast.makeText(context, "Failed to save", Toast.LENGTH_SHORT).show()
                             }
-
                     },
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E88E5))
                 ) {
@@ -175,39 +200,46 @@ fun HomeScreen(username: String, navController: NavController) {
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(Modifier.height(20.dp))
 
-        // SAVED BUDGET CARD
+        // SAVED DATA CARD
         if (showSaved) {
             Card(
-                modifier = Modifier.padding(horizontal = 20.dp).fillMaxWidth(),
+                modifier = Modifier
+                    .padding(horizontal = 20.dp)
+                    .fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 elevation = CardDefaults.cardElevation(6.dp)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
 
                     Text("Your Saved Budget", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(Modifier.height(10.dp))
 
                     Text("📅 Today: $today", fontSize = 16.sp)
-                    Text("📆 Week: $selectedWeek", fontSize = 16.sp)
+                    Text("🧾 Week: $selectedWeek", fontSize = 16.sp)
                     Text("🗓 Month: $selectedMonth", fontSize = 16.sp)
-                    Text("💰 Weekly: ₹$weeklyAmount", fontSize = 16.sp)
-                    Text("💸 Monthly: ₹$monthlyAmount", fontSize = 16.sp)
+                    Text("💰 Weekly Budget: ₹$weeklyAmount", fontSize = 16.sp)
+                    Text("💸 Monthly Budget: ₹$monthlyAmount", fontSize = 16.sp)
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(Modifier.height(10.dp))
 
-                    Text("📆 Saved On: $savedDate", fontSize = 16.sp)
-                    Text("⏰ Saved At: $savedTime", fontSize = 16.sp)
+                    Text("📆 Saved Date: $savedDate", fontSize = 16.sp)
+                    Text("⏰ Saved Time: $savedTime", fontSize = 16.sp)
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(25.dp))
+        Spacer(Modifier.height(25.dp))
 
+        // ADD EXPENSE BUTTON
         Button(
             onClick = { navController.navigate("expense") },
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 20.dp).height(50.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 20.dp)
+                .height(50.dp),
             shape = RoundedCornerShape(16.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0077FF))
         ) {
@@ -219,8 +251,8 @@ fun HomeScreen(username: String, navController: NavController) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DropdownField(
-    value: String,
     label: String,
+    value: String,
     options: List<String>,
     onSelect: (String) -> Unit
 ) {
@@ -232,10 +264,12 @@ fun DropdownField(
     ) {
         OutlinedTextField(
             value = value,
-            readOnly = true,
             onValueChange = {},
+            readOnly = true,
             label = { Text(label) },
-            modifier = Modifier.menuAnchor().fillMaxWidth(),
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth(),
             shape = RoundedCornerShape(12.dp)
         )
 
